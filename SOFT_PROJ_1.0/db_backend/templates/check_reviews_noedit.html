@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checking Reviews & Viewing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 55%;
+            background-color: #ffffff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin: 10px 0 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+        }
+
+        textarea {
+            resize: none;
+            height: 50px;
+        }
+
+        .submit-button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            align-self: center;
+            margin-top: 10px;
+        }
+
+        .submit-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CHECKING REVIEWS & VIEWING PAGE</h1>
+        <form>
+            <label for="label">Title</label>
+            <textarea id="label" name="label" placeholder="Value"></textarea>
+
+            <label for="reviewer1">Reviewer 1 Email</label>
+            <input type="text" id="reviewer1" name="reviewer1" placeholder="Enter email">
+
+            <label for="reviewer2">Reviewer 2 Email</label>
+            <input type="text" id="reviewer2" name="reviewer2" placeholder="Enter email">
+
+            <label for="reviewer3">Reviewer 3 Email</label>
+            <input type="text" id="reviewer3" name="reviewer3" placeholder="Enter email">
+
+            <label for="admin-email">Admin's Email</label>
+            <input type="text" id="admin-email" name="admin-email" placeholder="Enter email">
+
+            
+    </div>
+</body>
+</html>

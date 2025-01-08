@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submitted Papers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            background-color: #ffffff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #333333;
+            margin: 0;
+        }
+
+        .header a {
+            text-decoration: none;
+            font-size: 18px;
+            color: #007bff;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .header a:hover {
+            text-decoration: underline;
+        }
+
+        .article-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .article-info img {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+            margin-right: 20px;
+        }
+
+        .article-details {
+            flex-grow: 1;
+        }
+
+        .article-details h2 {
+            font-size: 18px;
+            margin: 0;
+            color: #333333;
+        }
+
+        .article-details p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .assign-button {
+            background-color: #17a2b8;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .assign-button:hover {
+            background-color: #138496;
+        }
+
+        .status-cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .status-cell span {
+            padding: 5px 10px;
+            background-color: #ffc107;
+            color: #ffffff;
+            border-radius: 5px;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        .reviews-button {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .reviews-button:hover {
+            background-color: #218838;
+        }
+
+        .status-cell-button {
+            background-color: #4428a7;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="javascript:history.back()">&larr; Back</a>
+            <h1>Submitted Papers</h1>
+        </div>
+        <div class="article-info">
+           
+            <div class="article-details">
+                <h2>Article name</h2>
+                <p>Description of research paper </p>
+                <p><strong>Today - 23 min</strong></p>
+            </div>
+            <button class="assign-button">&gt;</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Researchers ID</th>
+                    <th>Reviewers ID</th>
+                    <th>Status</th>
+                    <th>Reviews</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>User_id</td>
+                    <td><button class="assign-button">Assign</button></td>
+                    <td class="status-cell"><button>Needs Reviewer</button></td>
+                    <td><button class="reviews-button">added</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
