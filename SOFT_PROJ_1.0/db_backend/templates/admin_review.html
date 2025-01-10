@@ -10,7 +10,6 @@
     {% for review in reviews %}
         <div class="review-entry">
             <h3>Review by Reviewer ID: {{ review.reviewer_id }}</h3>
-            <p><strong>Rating:</strong> {{ review.rating }}</p>
             <p><strong>Comments:</strong> {{ review.comments }}</p>
             <p><strong>Date:</strong> {{ review.date }}</p>
         </div>
@@ -25,12 +24,5 @@
 </form>
 {% endblock %}
     
-<h3>Admin Action:</h3>
-<form method="POST">
-    <button type="submit" name="action" value="approve">Approve</button>
-    <button type="submit" name="action" value="needs revision">Request Revision</button>
-    <button type="submit" name="action" value="reject">Reject</button>
-</form>
-    <a href="{{ url_for('home') }}">Back</a>
 </body>
-</html>
+
