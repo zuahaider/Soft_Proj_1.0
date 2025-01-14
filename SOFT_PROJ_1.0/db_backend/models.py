@@ -52,7 +52,7 @@ class Review(db.Model):
     reviewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     paper_id = db.Column(db.Integer, db.ForeignKey('paper.id'), nullable=False)
     review_date = db.Column(db.Date, default=datetime.utcnow)
-
+    is_admin_review = db.Column(db.Boolean, default=False)  # New column to indicate admin review
     def __repr__(self):
         return f'<Review {self.id}>'
 

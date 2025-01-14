@@ -207,11 +207,60 @@ def my_profile():
     # Render the My Profile page with role-based visibility
     return render_template('my_profile.html', user=user)
 
-@app.route('/my_dashboard')
-def my_dashboard():
-   return render_template('my_dashboard.html')
-#user roles each one sees differently 
-#upon clicking researchers board 
+@app.route('/researchers_dashboard', methods=['GET'])
+def researchers_dashboard():
+    # Get filter values from the request
+    author_name = request.args.get('author_name', '')
+    article_name = request.args.get('article_name', '')
+    search = request.args.get('search', '')
+    theme = request.args.get('theme', '')
+    status = request.args.get('status', '')
+    sort_by_date = request.args.get('sort_by_date', 'latest')
+
+    # Assuming you have a way to get the logged-in user's ID (e.g., from the session)
+    researcher_id = session.get('user_id')  # Replace with your actual session logic
+
+    # Create the query for filtering papers
+    query = Paper.query.join(Paper.author)  # Assuming Paper model has a relationship with the Author model
+
+    # Filter papers by the logged-in researcher
+    query = query.filter(Paper.author_id == researcher_id)
+
+    # Filter by author name
+    if author_name:
+        query = query.filter(Paper.author.first_name.ilike(f'%{author_name}%') | Paper.author.last_name.ilike(f'%{author_name}%'))
+
+    # Filter by article name (title)
+    if article_name:
+        query = query.filter(Paper.title.ilike(f'%{article_name}%'))
+
+    # Filter by theme
+    if theme:
+        query = query.filter(Paper.theme == theme)
+
+    # Filter by status
+    if status:
+        query = query.filter(Paper.status == status)
+
+    # Search papers by title, description, or author
+    if search:
+        query = query.filter(
+            Paper.title.ilike(f'%{search}%') |
+            Paper.description.ilike(f'%{search}%') |
+            (Paper.author.first_name.ilike(f'%{search}%')) |
+            (Paper.author.last_name.ilike(f'%{search}%'))
+        )
+
+    # Sort by date (latest or oldest)
+    if sort_by_date == 'latest':
+        query = query.order_by(Paper.submission_date.desc())
+    else:
+        query = query.order_by(Paper.submission_date.asc())
+
+    # Fetch the papers
+    papers = query.all()
+
+    return render_template('researchers_dashboard.html', papers=papers)
 
 @app.route('/mypaper_status')
 def mypaper_status():
@@ -509,9 +558,31 @@ def final_review():
 def assign_reviewer():
     return render_template(assign_reviewer.html)
 
-@app.route('/view_userdetails', methods=['GET'])
-def view_userdetails():
-    return render_template(view_userdetails.html)
+@app.route('/view_users', methods=['GET'])
+def view_users():
+    try:
+        # Query all users
+        users = session.query(User).all()
+        
+        # Convert user data to a list of dictionaries
+        user_data = [
+            {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "preferences": user.preferences
+            }
+            for user in users
+        ]
+        
+        # Return data as JSON or render it in a template
+        return jsonify(user_data)  # For API response
+        # return render_template('view_users.html', users=user_data)  # For HTML response
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/paper/<int:paper_id>', methods=['GET', 'POST'])
 def paper_detail(paper_id):

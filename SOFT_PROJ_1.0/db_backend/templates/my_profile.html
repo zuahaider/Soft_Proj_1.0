@@ -15,7 +15,12 @@
 
     <!-- Show My Progress only for researchers/reviewers -->
     {% if user.role in ['researcher', 'reviewer'] %}
-    <p>Track your paper's progress here. <a href="{{ url_for('my_dashboard') }}">My Dashboard</a></p>
+    <p>Track your submitted paper's progress here. <a href="{{ url_for('researchers_dashboard') }}">Writer's Dashboard</a></p>
+    {% endif %}
+
+    <!-- Show My Progress only for researchers/reviewers -->
+    {% if user.role in ['reviewer'] %}
+    <p>Track your submitted paper's progress here. <a href="{{ url_for('researchers_dashboard') }}">Reviewer's Dashboard</a></p>
     {% endif %}
 
     <!-- Common options for all users -->

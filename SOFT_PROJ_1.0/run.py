@@ -5,3 +5,4 @@ if __name__ == '__main__':
         from db_backend import db
         db.create_all()  # Ensure all tables are created
     app.run(debug=True)
+    
