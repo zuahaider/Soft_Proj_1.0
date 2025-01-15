@@ -26,7 +26,7 @@
 </div>
 
 <!-- Admin Comment Section -->
-<h3>Add Admin Comment</h3>
+<h3>Admin's Review</h3>
 <form method="POST" action="{{ url_for('admin_add_comment', paper_id=paper.id) }}">
     <textarea name="admin_comment" placeholder="Write your review here..." required></textarea>
     <button type="submit">Submit Review</button>
