@@ -115,7 +115,7 @@
                     {% if paper.status == 'published' %}
                     <p><strong>Publish Date:</strong> {{ paper.publish_date.strftime('%Y-%m-%d') }}</p>
                     {% endif %}
-                    <a class="view-paper-link" href="{{ url_for('view_paper', paper_id=paper.id) }}">View Paper</a>
+                    <a class="view-paper-link" href="{{ url_for('resrachers_view_paper', paper_id=paper.id) }}">View Paper</a>
                 </div>
             </li>
             {% else %}
