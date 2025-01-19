@@ -1,6 +1,6 @@
 import datetime
 import os
-from flask import  render_template, request, redirect, url_for, flash, session, jsonify
+from flask import  abort, render_template, request, redirect, url_for, flash, session, jsonify
 from db_backend import app,db
 from flask_migrate import Migrate
 from flask_ckeditor import CKEditor
@@ -118,7 +118,7 @@ def register():
 
     return render_template('register.html')
 
-
+'''
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -127,15 +127,35 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-            session['role'] = user.role
-            return redirect(url_for('my_home'))
+           # session['user_id'] = user.id
+           # session['role'] = user.role
+           # added
+           login_user(user)
+           return redirect(url_for('my_home'))
         else:
             flash("Invalid email or password.", "error")
             return redirect(url_for('login'))
     
     return render_template('login.html')
+'''
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
 
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+
+            # Redirect to the next page or a default page
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('my_home'))
+        else:
+            flash("Invalid email or password.", "error")
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
 
 
 @app.route('/logout')
@@ -149,8 +169,6 @@ def logout():
     
     # Redirect to the login page
     return redirect(url_for('login'))
-
-
 
 @app.route('/my_home', methods=['GET'])
 def my_home():
@@ -184,79 +202,20 @@ def my_home():
 
     return render_template('my_home.html', papers=papers)
 
-@app.route('/admins_review/<int:paper_id>', methods=['GET', 'POST'])
-@login_required
-def admins_review(paper_id):
-    if current_user.role != 'admin':
-        flash("You do not have permission to access this page.")
-        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
-
-    paper = Paper.query.get_or_404(paper_id)
-    reviews = Review.query.filter_by(paper_id=paper_id).all()
-
-    # Check if the admin already provided a review
-    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
-
-    if request.method == 'POST':
-        # If there's an existing review, update it
-        if admin_review:
-            admin_review.review_text = request.form['review_text']
-        else:
-            # Otherwise, create a new admin review
-            new_review = Review(
-                review_text=request.form['review_text'],
-                status='received',
-                reviewer_id=current_user.id,
-                paper_id=paper_id,
-                is_admin_review=True
-            )
-            db.session.add(new_review)
-        
-        db.session.commit()
-        flash("Review submitted successfully.")
-        return redirect(url_for('admin_final_review', paper_id=paper_id))  # Redirect to final review page
-
-    return render_template('admins_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
-
-# Route for Admin's Final Review Page (admins_final_review.html)
-@app.route('/admins_final_review/<int:paper_id>')
-@login_required
-def admins_final_review(paper_id):
-    if current_user.role != 'admin':
-        flash("You do not have permission to access this page.")
-        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
-
-    paper = Paper.query.get_or_404(paper_id)
-    reviews = Review.query.filter_by(paper_id=paper_id).all()
-
-    # Get the admin's final review
-    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
-
-    if not admin_review:
-        flash("You must provide a review before viewing the final review.")
-        return redirect(url_for('admins_final_review', paper_id=paper_id))  # Redirect to the editable review page
-
-    return render_template('admins_final_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
-
-@app.route('/view_paper/<int:paper_id>', methods=['GET'])
-def view_paper(paper_id):
-    paper = Paper.query.get_or_404(paper_id)
-    return render_template('view_paper.html', paper=paper)
-
 @app.route('/my_profile')
 def my_profile():
     # Check if the user is logged in
-    if 'user_id' not in session:
+    if not current_user.is_authenticated:
         flash("Please log in to access your profile.")
-        return redirect(url_for('login'))
+        return redirect(url_for('login', next=request.path))
 
     # Fetch the user from the database
-    user = User.query.get(session['user_id'])
+    user = User.query.get(current_user.id)
     
     if not user:
         flash("User not found!")
         return redirect(url_for('login'))
-    
+
     # Render the My Profile page with role-based visibility
     return render_template('my_profile.html', user=user)
 
@@ -315,47 +274,178 @@ def researchers_dashboard():
 
     return render_template('researchers_dashboard.html', papers=papers)
 
-@app.route('/mypaper_status')
-def mypaper_status():
-   return render_template('mypaper_status.html')
-#viewonly cant edit
-#researchers only or reseracher+reviewers
+@app.route('/admins_dashboard', methods=['GET'])
+def admins_dashboard():
+    # Get filters for papers from the request arguments
+    author_name = request.args.get('author_name')
+    article_name = request.args.get('article_name')
+    theme = request.args.get('theme')
+    status = request.args.get('status')
+    search_query = request.args.get('search')
+    sort_by_date = request.args.get('sort_by_date', 'latest')
+
+    # Get filters for users from the request arguments
+    user_name = request.args.get('name')
+    approved_papers = request.args.get('approved_papers')
+    assigned_papers = request.args.get('assigned_papers')
+    preferences = request.args.getlist('preferences')
+
+    # Build the query for fetching papers
+    paper_query = Paper.query
+    if author_name:
+        paper_query = paper_query.filter(Paper.author.contains(author_name))
+    if article_name:
+        paper_query = paper_query.filter(Paper.title.contains(article_name))
+    if search_query:
+        paper_query = paper_query.filter(Paper.title.contains(search_query) | Paper.content.contains(search_query))
+    if theme:
+        paper_query = paper_query.filter(Paper.theme == theme)
+    if sort_by_date == 'latest':
+        paper_query = paper_query.order_by(Paper.submission_date.desc())
+    elif sort_by_date == 'oldest':
+        paper_query = paper_query.order_by(Paper.submission_date.asc())
+    if status:
+        paper_query = paper_query.filter(Paper.status == status)
+    papers = paper_query.all()
+
+    # Build the query for fetching users
+    user_query = User.query
+    if user_name:
+        user_query = user_query.filter(User.first_name.contains(user_name) | User.last_name.contains(user_name))
+    if approved_papers:
+        if approved_papers == 'most':
+            user_query = user_query.order_by(User.approved_papers.desc())
+        elif approved_papers == 'least':
+            user_query = user_query.order_by(User.approved_papers.asc())
+    if assigned_papers:
+        if assigned_papers == 'most':
+            user_query = user_query.order_by(User.assigned_papers.desc())
+        elif assigned_papers == 'least':
+            user_query = user_query.order_by(User.assigned_papers.asc())
+    if preferences:
+        user_query = user_query.filter(User.preferences.any(preferences.in_(preferences)))
+
+    users = user_query.all()
+
+    return render_template(
+        'admins_dashboard.html',
+        papers=papers,
+        users=users
+    )
+
+#make a reviewer
 
 
-@app.route('/reviews_received')
-def reviews_received():
-   return render_template('reviews_received.html')
-#viewonly cant edit
-#researchers only or reseracher+reviewers
-#if old version/any paper same thing 
+@app.route('/admins_view_user_details', methods=['GET'])
+def admins_view_user_details():
+    try:
+        # Query all users
+        users = session.query(User).all()
+        
+        # Convert user data to a list of dictionaries
+        user_data = [
+            {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "preferences": user.preferences
+            }
+            for user in users
+        ]
+        
+        # Return data as JSON or render it in a template
+        return jsonify(user_data)  # For API response
+        # return render_template('admins_view_user_details.html', users=user_data)  # For HTML response
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/reviewers_dashboard')
-def reviewers_dashboard():
-   return render_template('reviewers_dashboard.html')
-#reviewers only or reseracher+reviewers
+def get_paper_by_id(paper_id):
+    # Fetch paper from database by its ID
+    return Paper.query.get(paper_id)
 
+def get_reviewers_for_paper(paper_id):
+    # Assuming Paper has a relationship with User for reviewers
+    paper = Paper.query.get(paper_id)
+    if paper:
+        return User.query.filter(User.id.in_(paper.reviewers)).all()  # Modify based on your relationship setup
+    return []  # Return empty list if no reviewers found
 
-@app.route('/assigned_papers')
-def assigned_papers():
-   return render_template('assigned_papers.html')
-#reviewers only or reseracher+reviewers
+@app.route('/admins_view_paper_details/<paper_id>')
+def admins_view_paper_details(paper_id):
+    paper = get_paper_by_id(paper_id)
+    if not paper:
+        return "Paper not found", 404  # Return a 404 if the paper is not found
+    
+    reviewers = get_reviewers_for_paper(paper_id)
+    return render_template('admins_view_paper_details.html', paper=paper, reviewers=reviewers)
 
-@app.route('/reviewing_page')
-def reviewing_page():
-   return render_template('reviewing_page.html')
-#reviewers only or reseracher+reviewers
-#editable only as long as paper status==under review, needs revision
+@app.route('/admins_review/<int:paper_id>', methods=['GET', 'POST'])
+@login_required
+def admins_review(paper_id):
+    if current_user.role != 'admin':
+        flash("You do not have permission to access this page.")
+        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
 
-@app.route('/submit_paper', methods=['GET', 'POST'])
+    paper = Paper.query.get_or_404(paper_id)
+    reviews = Review.query.filter_by(paper_id=paper_id).all()
+
+    # Check if the admin already provided a review
+    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
+
+    if request.method == 'POST':
+        # If there's an existing review, update it
+        if admin_review:
+            admin_review.review_text = request.form['review_text']
+        else:
+            # Otherwise, create a new admin review
+            new_review = Review(
+                review_text=request.form['review_text'],
+                status='received',
+                reviewer_id=current_user.id,
+                paper_id=paper_id,
+                is_admin_review=True
+            )
+            db.session.add(new_review)
+        
+        db.session.commit()
+        flash("Review submitted successfully.")
+        return redirect(url_for('admin_final_review', paper_id=paper_id))  # Redirect to final review page
+
+    return render_template('admins_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
+
+# Route for Admin's Final Review Page (admins_final_review.html)
+@app.route('/admins_final_review/<int:paper_id>')
+@login_required
+def admins_final_review(paper_id):
+    if current_user.role != 'admin':
+        flash("You do not have permission to access this page.")
+        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
+
+    paper = Paper.query.get_or_404(paper_id)
+    reviews = Review.query.filter_by(paper_id=paper_id).all()
+
+    # Get the admin's final review
+    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
+
+    if not admin_review:
+        flash("You must provide a review before viewing the final review.")
+        return redirect(url_for('admins_final_review', paper_id=paper_id))  # Redirect to the editable review page
+
+    return render_template('admins_final_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
+
+@app.route('/submit_paper', methods=['GET', 'POST']) 
+@login_required
 def submit_paper():
+    print(current_user)
+    print(current_user.is_authenticated)
     if request.method == 'POST':
         # Extract form fields
         title = request.form.get('title')
         theme = request.form.get('theme')
-        description=request.form.get('description')
+        description = request.form.get('description')
         content = request.form.get('content')  # Content from CKEditor
-        action = request.form.get('action')  # Determines whether to submit or save as draft
 
         # Validate mandatory fields
         if not title or not theme or not content.strip():
@@ -379,8 +469,8 @@ def submit_paper():
                 flash(f"Error saving file: {e}", 'error')
                 return redirect(url_for('submit_paper'))
 
-        # Determine the status: "draft" or "needs reviewer"
-        status = "needs reviewer" if action == "submit" else "draft"
+        # Status is always "needs reviewer"
+        status = "needs reviewer"
 
         # Create new Paper object
         new_paper = Paper(
@@ -397,10 +487,7 @@ def submit_paper():
         try:
             db.session.add(new_paper)
             db.session.commit()
-            if status == "draft":
-                flash('Paper saved to drafts successfully!', 'success')
-            else:
-                flash('Paper submitted successfully!', 'success')
+            flash('Paper submitted successfully!', 'success')
             return redirect(url_for('my_profile'))
         except Exception as e:
             db.session.rollback()
@@ -453,33 +540,6 @@ def resubmit_paper(paper_id):
     db.session.commit()
 '''
 
-@app.route('/mypaper_status2')
-def mypaper_status2():
-   return render_template('mypaper_status2.html')
-#researchers only or res+rev
-
-'''
-@app.route('/reviews_received')
-def reviews_received():
-   return render_template('reviews_received.html')
-#viewonly cant edit
-#researchers only 
-#if old version/any paper same thing 
-'''
-
-@app.route('/assigned_papers2')
-def assigned_papers2():
-   return render_template('assigned_papers2.html')
-#reviewers only or researcher+reviewer
-
-@app.route('/reviewing_page2')
-def reviewing_page2():
-   return render_template('reviewing_page2.html')
-#reviewers only or reseracher+reviewers
-#undeitable version
-#for all status: old version, approved, published, rejected
-#excpet for: under review, needs revision
-
 @app.route('/notifications')
 def notifications():
     user = User.query.get(current_user.id)  # Assuming you're using Flask-Login for user session
@@ -491,7 +551,7 @@ def notifications():
     db.session.commit()
 
     return render_template('notifications.html', notifications=unread_notifications)
-
+'''
 @app.route('/drafts')
 def drafts():
     drafts = Paper.query.filter_by(author_id=current_user.id, status="draft").all()
@@ -560,108 +620,6 @@ def delete_draft(paper_id):
     except Exception as e:
         db.session.rollback()
         flash('An error occurred. Please try again.', 'error')
-
-@app.route('/admins_dashboard', methods=['GET'])
-def admins_dashboard():
-    # Get filters from the request arguments
-    author_name = request.args.get('author_name')
-    article_name = request.args.get('article_name')
-    theme = request.args.get('theme')
-    status = request.args.get('status')
-    search_query = request.args.get('search')
-    sort_by_date = request.args.get('sort_by_date', 'latest')
-    
-    # Build the query for fetching papers based on filters
-    query = Paper.query
-    
-    if author_name:
-        query = query.filter(Paper.author.contains(author_name))
-    if article_name:
-        query = query.filter(Paper.title.contains(article_name))
-    if search_query:
-        query = query.filter(Paper.title.contains(search_query) | Paper.content.contains(search_query))
-    if theme:
-        query = query.filter(Paper.theme == theme)
-
-    if sort_by_date == 'latest':
-        query = query.order_by(Paper.submission_date.desc())
-    elif sort_by_date == 'oldest':
-        query = query.order_by(Paper.submission_date.asc())
-
-    if status:
-        query = query.filter(Paper.status == status)
-    
-    papers = query.all()
-    
-    return render_template('admins_dashboard.html', papers=papers)
-
-@app.route('/paper_overview', methods=['GET'])
-def paper_overview():
-    return render_template(paper_overview.html)
-
-@app.route('/admin_review', methods=['GET'])
-def admin_review():
-    return render_template(admin_review.html)
-
-@app.route('/final_review', methods=['GET'])
-def final_review():
-    return render_template(final_review.html)
-
-@app.route('/assign_reviewer', methods=['GET'])
-def assign_reviewer():
-    return render_template(assign_reviewer.html)
-
-@app.route('/view_users', methods=['GET'])
-def view_users():
-    try:
-        # Query all users
-        users = session.query(User).all()
-        
-        # Convert user data to a list of dictionaries
-        user_data = [
-            {
-                "id": user.id,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "email": user.email,
-                "preferences": user.preferences
-            }
-            for user in users
-        ]
-        
-        # Return data as JSON or render it in a template
-        return jsonify(user_data)  # For API response
-        # return render_template('view_users.html', users=user_data)  # For HTML response
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/paper/<int:paper_id>', methods=['GET', 'POST'])
-def paper_detail(paper_id):
-    paper = Paper.query.get_or_404(paper_id)
-    
-    if request.method == 'POST':
-        status = request.form['status']
-        paper.status = status
-        db.session.commit()
-        flash('Status updated successfully!', 'success')
-    
-    return render_template('paper_detail.html', paper=paper)
-
-@app.route('/paper/<int:paper_id>/add_review', methods=['POST'])
-def add_review(paper_id):
-    paper = Paper.query.get_or_404(paper_id)
-    
-    if request.method == 'POST':
-        review_content = request.form['review']
-        new_review = Review(content=review_content, paper_id=paper.id, reviewer_id=current_user.id)
-        db.session.add(new_review)
-        db.session.commit()
-        flash('Review added successfully!', 'success')
-    
-    return redirect(url_for('paper_detail', paper_id=paper.id))
-
 def assign_reviewer(paper_id, reviewer_id):
     # Create a notification for the reviewer
     notification = Notification(user_id=reviewer_id, message=f"You have been assigned to review the paper {paper_id}.")
@@ -695,3 +653,4 @@ def mark_notification_as_read(notification_id):
         db.session.commit()
         return jsonify({"message": "Notification marked as read."}), 200
     return jsonify({"error": "Notification not found."}), 404
+'''

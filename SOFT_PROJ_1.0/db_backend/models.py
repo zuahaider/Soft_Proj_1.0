@@ -1,10 +1,10 @@
 from datetime import datetime
 from db_backend import db
-
+from flask_login import UserMixin
 
 
 # User Model
-class User(db.Model):
+class User(UserMixin,db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -17,6 +17,11 @@ class User(db.Model):
     reviews = db.relationship('Review', backref='reviewer', lazy=True)
     approved_papers = db.Column(db.Integer, default=0)
     assigned_papers = db.Column(db.Integer, default=0)
+    active = db.Column(db.Boolean, default=True)
+
+    @property
+    def is_active(self):
+        return self.active
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -31,11 +36,11 @@ class Paper(db.Model):
     theme = db.Column(db.String(100), nullable=False)
     submission_date = db.Column(db.DateTime, default=datetime.utcnow)
     publish_date = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(100), default="draft")  
+    status = db.Column(db.String(100), default="needs reviewer")  
     pdf_filename = db.Column(db.String(255), nullable=True)  # Optional
-    reviewers = db.relationship('Review', backref='paper', lazy=True)
+    reviewers = db.relationship('User', backref='paper', lazy=True)
     old_version_id = db.Column(db.Integer, db.ForeignKey('paper.id'), nullable=True)  # Link to the old version
-    description = db.Column(db.String(500), nullable=True)  # New column for short description
+    description = db.Column(db.String(500), nullable=False)  # New column for short description
 
     # Relationship to track old version
     old_version = db.relationship('Paper', remote_side=[id], backref='resubmitted_paper')
