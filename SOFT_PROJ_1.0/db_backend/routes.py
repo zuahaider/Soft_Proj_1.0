@@ -184,6 +184,59 @@ def my_home():
 
     return render_template('my_home.html', papers=papers)
 
+@app.route('/admins_review/<int:paper_id>', methods=['GET', 'POST'])
+@login_required
+def admins_review(paper_id):
+    if current_user.role != 'admin':
+        flash("You do not have permission to access this page.")
+        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
+
+    paper = Paper.query.get_or_404(paper_id)
+    reviews = Review.query.filter_by(paper_id=paper_id).all()
+
+    # Check if the admin already provided a review
+    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
+
+    if request.method == 'POST':
+        # If there's an existing review, update it
+        if admin_review:
+            admin_review.review_text = request.form['review_text']
+        else:
+            # Otherwise, create a new admin review
+            new_review = Review(
+                review_text=request.form['review_text'],
+                status='received',
+                reviewer_id=current_user.id,
+                paper_id=paper_id,
+                is_admin_review=True
+            )
+            db.session.add(new_review)
+        
+        db.session.commit()
+        flash("Review submitted successfully.")
+        return redirect(url_for('admin_final_review', paper_id=paper_id))  # Redirect to final review page
+
+    return render_template('admins_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
+
+# Route for Admin's Final Review Page (admins_final_review.html)
+@app.route('/admins_final_review/<int:paper_id>')
+@login_required
+def admins_final_review(paper_id):
+    if current_user.role != 'admin':
+        flash("You do not have permission to access this page.")
+        return redirect(url_for('my_home'))  # Redirect to home if the user isn't an admin
+
+    paper = Paper.query.get_or_404(paper_id)
+    reviews = Review.query.filter_by(paper_id=paper_id).all()
+
+    # Get the admin's final review
+    admin_review = Review.query.filter_by(paper_id=paper_id, reviewer_id=current_user.id, is_admin_review=True).first()
+
+    if not admin_review:
+        flash("You must provide a review before viewing the final review.")
+        return redirect(url_for('admins_final_review', paper_id=paper_id))  # Redirect to the editable review page
+
+    return render_template('admins_final_review.html', paper=paper, reviews=reviews, admin_review=admin_review)
 
 @app.route('/view_paper/<int:paper_id>', methods=['GET'])
 def view_paper(paper_id):
